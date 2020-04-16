@@ -1,0 +1,30 @@
+name: githubactions-spa
+description: ''
+author: ''
+icon: ''
+thumbnail: ''
+
+prompts:
+  - field: region
+    label: Select AWS Region
+    options:
+      - "us-west-1"
+      - "us-west-2"
+      - "us-east-1"
+      - "us-east-2"
+      - "ca-central-1"
+      - "eu-central-1"
+      - "eu-west-1"
+      - "ap-east-1"
+      - "ap-south-1"
+  - field: stagingHost
+    label: staging bucket name
+  - field: host
+    label: production bucket name
+
+template:
+  strictMode: true
+  delimiters:
+    - '<%'
+    - '%>'
+  output: 'web-app'

@@ -1,0 +1,69 @@
+
+
+name: Build and Deploy
+
+on:
+  push:
+    branches:
+      - staging
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+
+      # https://github.com/marketplace/actions/setup-node-js-for-use-with-actions
+      - name: Setup Node
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+
+      - run: npm install
+
+      - run: npm run build
+
+      - name: upload build artifacts
+        uses: actions/upload-artifact@v1
+        with:
+          name: build
+          path: build
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 1
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v1
+        with:
+          name: build
+
+      # Note: Github Actions only supports branched based deployment to production.
+      # currently, there's no way of implementing a guard that releases a staging artifact to prod.  
+      - name: Publish to Staging S3 and Invalidate Cloudfront Distribution
+        if: github.ref == 'refs/heads/staging'
+        uses: opspresso/action-s3-sync@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: '<% index .Params `region` %>'
+          FROM_PATH: './build'
+          DEST_PATH: 's3://<% index .Params `stagingHost` %>'
+
+      - name: Publish to Production S3 and Invalidate Cloudfront Distribution
+        if: github.ref == 'refs/heads/master'
+        uses: opspresso/action-s3-sync@master
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: '<% index .Params `region` %>'
+          FROM_PATH: './build'
+          DEST_PATH: 's3://<% index .Params `host` %>'
